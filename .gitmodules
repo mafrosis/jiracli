@@ -1,0 +1,3 @@
+[submodule "jira"]
+	path = jira
+	url = git@github.com:mafrosis/jira.git
