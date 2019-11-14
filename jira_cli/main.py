@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 from dataclasses import dataclass, field
 import datetime
 import json
@@ -157,7 +155,3 @@ def cli_pull():
     dtstart = datetime.datetime.now()
     Jira.pull_issues()
     print('Query time: {}'.format(datetime.datetime.now() - dtstart))
-
-
-if __name__ == '__main__':
-    cli()
