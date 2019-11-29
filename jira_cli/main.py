@@ -1,7 +1,7 @@
 import collections.abc
 import copy
 import dataclasses
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 import datetime
 import decimal
 import enum
@@ -349,6 +349,7 @@ class Jira(collections.abc.MutableMapping):
         """
         Convert self (aka a dict) into pandas DataFrame
         """
-        df = pd.DataFrame.from_dict({k:v.serialize() for k,v in self.items()}, orient='index')
+        df = pd.DataFrame.from_dict({k:asdict(v) for k,v in self.items()}, orient='index')
+        df.drop(['server_object', 'diff_to_upstream'], axis=1)
         df = df[ (df.issuetype != 'Delivery Risk') & (df.issuetype != 'Ops/Introduced Risk') ]
         return df
