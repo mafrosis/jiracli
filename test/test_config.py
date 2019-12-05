@@ -34,7 +34,7 @@ def test_load_config__config_file_exists(mock_open, mock_sys, mock_os, mock_json
     assert getattr(conf, config_property) == value
 
 
-@mock.patch('jira_cli.config.AppConfig', spec=AppConfig)
+@mock.patch('jira_cli.config.AppConfig')
 @mock.patch('jira_cli.config.Jira')
 @mock.patch('jira_cli.config.getpass')
 @mock.patch('jira_cli.config.os')
@@ -62,10 +62,9 @@ def test_load_config__not_config_file_exists_input_ok(mock_input, mock_sys, mock
     assert mock_appconfig_class.return_value.write_to_disk.called
     assert conf.username == 'test'
     assert conf.password == 'egg'
-    assert conf.hostname == 'jira.service.anz'
 
 
-@mock.patch('jira_cli.config.AppConfig', spec=AppConfig)
+@mock.patch('jira_cli.config.AppConfig')
 @mock.patch('jira_cli.config.Jira')
 @mock.patch('jira_cli.config.getpass')
 @mock.patch('jira_cli.config.os')
@@ -98,11 +97,12 @@ def test_load_config__not_config_file_exists_input_bad(mock_input, mock_sys, moc
 
 
 @mock.patch('jira_cli.config.json')
-@mock.patch('jira_cli.config.AppConfig', spec=AppConfig)
+@mock.patch('jira_cli.config.AppConfig')
+@mock.patch('jira_cli.config.Jira')
 @mock.patch('jira_cli.config.os')
 @mock.patch('jira_cli.config.sys')
 @mock.patch('builtins.open')
-def test_load_config_projects_arg_extends_projects_config(mock_open, mock_sys, mock_os, mock_appconfig_class, mock_json):
+def test_load_config__projects_arg_extends_projects_config(mock_open, mock_sys, mock_os, mock_jira_class, mock_appconfig_class, mock_json):
     """
     Ensure project IDs passed with --projects param on CLI are merged into the existing
     config.projects set
@@ -114,6 +114,7 @@ def test_load_config_projects_arg_extends_projects_config(mock_open, mock_sys, m
     mock_json.load.return_value = {'projects': ['CNTS']}
 
     # pass new project as set type
+    import pdb; pdb.set_trace()
     conf = load_config({'EGG'})
 
     assert conf.projects == {'CNTS', 'EGG'}

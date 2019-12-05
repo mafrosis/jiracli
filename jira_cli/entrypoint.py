@@ -69,15 +69,32 @@ def cli_pull(ctx, projects: list=None):
     jira.config = load_config(projects)
     jira.pull_issues(verbose=ctx.obj.verbose)
 
+@cli.command(name='push')
+def cli_push():
+    '''Push changes to JIRA issues back to server'''
+    jira = Jira()
+    jira.config = load_config()
+    jira.push_issues()
+
+
+@dataclass
+class StatsParams:
+    where: str
+
 @cli.group(name='stats')
-def cli_group_stats():
+@click.option('--where', help='SQL-like filter syntax')
+@click.pass_context
+def cli_group_stats(ctx, where):
     'Generate stats on JIRA data'
+    ctx.obj.stats = StatsParams(where=where)
 
 @cli_group_stats.command(name='issuetype')
-def cli_stats_issuetype():
+@click.pass_context
+def cli_stats_issuetype(ctx):
     '''Stats on issue type'''
     jira = Jira()
     df = jira.load_issues()
+    import ipdb; ipdb.set_trace()
     aggregated_issuetype = df.groupby([df['issuetype']]).size().to_frame(name='count')
     _print_table(aggregated_issuetype)
 

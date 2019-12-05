@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass, field
 import datetime
 import decimal
 import enum
+import hashlib
 import json
 import logging
 import os
@@ -13,6 +14,7 @@ import urllib3
 
 import arrow
 import dictdiffer
+#from moz_sql_parser import parse
 import pandas as pd
 
 import jira as mod_jira
@@ -24,6 +26,34 @@ from tqdm import tqdm
 CUSTOM_FIELD_EPIC_LINK = 'customfield_14182'
 CUSTOM_FIELD_EPIC_NAME = 'customfield_14183'
 CUSTOM_FIELD_ESTIMATE = 'customfield_10002'
+
+STATUS_BACKLOG = ['Backlog']
+STATUS_TODO = ['To Do']
+STATUS_INPROG = ['In Progress', 'Story in Progress', 'Epic in Progress', 'In Release']
+STATUS_DONE = ['Done', 'Story Done', 'Epic Done']
+STATUS_CLOSED = ['Closed']
+
+STATUS_OPEN = STATUS_BACKLOG + STATUS_TODO + STATUS_INPROG
+STATUS_CLOSED = STATUS_DONE + STATUS_CLOSED
+
+# TODO FIX: set fixVersions to PI6 on epics
+# TODO FIX: ensure fixVersions = PI6 on all issues under epics
+# TODO STATS: wontfix/closed points in the PI
+# TODO LINT: missing fixVersion
+
+# TODO APP: jira[epic] vals reflected in dataframe?
+# TODO APP: lint all
+# TODO APP: --include-risks for stats commands
+# TODO APP: write changes back to JIRA (what about conflicts?)
+# TODO STATS: Epics -> points done / outstanding
+# TODO STATS: Top ticket creators
+# TODO LINT: issues without epic
+# TODO LINT: Done & LightsOn & no estimate
+# TODO LINT: Backlog & Not LightsOn & no estimate
+# TODO LINT: Backlog & LightsOn -> move to ToDo
+# TODO LINT: issues without "Acceptance Criteria"
+# TODO LINT: no subtasks!
+# TODO LINT: no description
 
 logger = logging.getLogger('jira')
 
@@ -78,7 +108,7 @@ class DataclassSerializer:
             elif dataclasses.is_dataclass(f.type):
                 data[f.name] = v.serialize()
             elif isinstance(v, decimal.Decimal):
-                data[f.name] = float(v)
+                data[f.name] = str(v)
             elif issubclass(f.type, enum.Enum):
                 # convert Enum to raw string
                 data[f.name] = v.name
@@ -117,8 +147,23 @@ class Issue(DataclassSerializer):
     # this property is not written to cache and is created at runtme from diff_to_upstream
     server_object: object = field(default=None, repr=False)
 
+    #@property
+    #def server_object(self) -> object:
+    #    if self.diff_to_upstream is None:
+    #        self.diff_to_upstream = []
+    #    return self.__class__(**dictdiffer.patch(self.diff_to_upstream, self.serialize()))
+
     # patch of current Issue to object last seen on JIRA server
     diff_to_upstream: list = field(default=None, repr=False)
+
+    #@property
+    #def diff_to_upstream(self) -> list:
+    #    if self.server_object:
+    #        return list(dictdiffer.diff(self.serialize(), self.server_object.serialize()))
+
+    @property
+    def hash(self) -> str:
+        return hashlib.blake2b(repr(self.serialize()).encode('utf8')).hexdigest()
 
     @classmethod
     def deserialize(cls, attrs: dict) -> object:
@@ -213,6 +258,8 @@ class Jira(collections.abc.MutableMapping):
         self._jira = mod_jira.JIRA(
             options={'server': 'https://{}'.format(self.config.hostname), 'verify': False},
             basic_auth=(self.config.username, self.config.password),
+            #timeout=15,
+            #max_retries=2,
         )
         return self._jira
 
@@ -316,6 +363,37 @@ class Jira(collections.abc.MutableMapping):
             'updated': issue.fields.updated,
         })
 
+    #def _fetch_single_issue(self, key: str) -> Issue:
+    #    """
+    #    Retrieve single issue from JIRA API
+    #    """
+    #    self._connect()
+    #    return self._raw_issue_to_object(self._jira.issue(key))
+
+    def push_issues(self):
+        """
+        Push changed issues back to JIRA server. Changed issues will have a diff_to_upstream field set.
+        """
+        if not self:
+            self.load_issues()
+
+        for issue in self.values():
+            if issue.diff_to_upstream:
+                self._sync_single_issue(issue)
+
+    def _sync_single_issue(self, issue):
+        """
+        Sync an issue back to the Jira server. Reconcile any difference from the upstream version.
+        """
+        self._connect()
+        upstream_issue = self._raw_issue_to_object(self._jira.issue(issue.key))
+        logger.debug('%s %s', issue.key, issue.diff_to_upstream)
+        import ipdb; ipdb.set_trace()
+        pass
+        # TODO load issue from server
+        # run diff
+        # write
+
     def load_issues(self) -> pd.DataFrame:
         """
         Load issues from JSON cache file, and store as class variable
@@ -350,6 +428,8 @@ class Jira(collections.abc.MutableMapping):
         Convert self (aka a dict) into pandas DataFrame
         """
         df = pd.DataFrame.from_dict({k:asdict(v) for k,v in self.items()}, orient='index')
+        if df.empty:
+            return df
         df.drop(['server_object', 'diff_to_upstream'], axis=1)
         df = df[ (df.issuetype != 'Delivery Risk') & (df.issuetype != 'Ops/Introduced Risk') ]
         return df
