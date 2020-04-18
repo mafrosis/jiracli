@@ -99,7 +99,7 @@ def pull_single_project(jira: 'Jira', project: ProjectMeta, force: bool, verbose
         while True:
             startAt = page * 25
 
-            params = {'jql': jql, 'startAt': startAt, 'maxResults': 25}
+            params = {'jql': jql, 'startAt': startAt, 'maxResults': 25, 'fields': project.jira_fields}
             data = api_get(project, 'search', params=params)
 
             issues = data.get('issues', [])
@@ -626,5 +626,5 @@ def _fetch_single_issue(project: ProjectMeta, issue: Issue) -> Optional[Issue]:
     if not issue.exists:
         return None
 
-    data = api_get(project, 'issue/{issue.key}')
+    data = api_get(project, 'issue/{issue.key}', params={'fields': project.jira_fields})
     return jiraapi_object_to_issue(project, data)

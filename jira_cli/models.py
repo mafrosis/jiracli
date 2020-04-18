@@ -1,6 +1,7 @@
 '''
 Application data structures. Mostly dataclasses inheriting from utils.DataclassSerializer.
 '''
+import dataclasses
 from dataclasses import dataclass, field
 import datetime
 import enum
@@ -89,6 +90,17 @@ class ProjectMeta(DataclassSerializer):  # pylint: disable=too-many-instance-att
             return self.oauth.asoauth1()
         else:
             raise NoAuthenticationMethod
+
+    @property
+    def jira_fields(self):
+        '''Return the list of fields to retrieve from Jira API'''
+        return [
+            f.metadata.get('property', f.name) for f in dataclasses.fields(Issue)
+        ] + [
+            f'customfield_{self.custom_fields.epic_ref}',
+            f'customfield_{self.custom_fields.epic_name}',
+            f'customfield_{self.custom_fields.estimate}',
+        ]
 
     @property
     def project_uri(self):
