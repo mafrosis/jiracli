@@ -42,3 +42,21 @@ def critical_logger(logger_):
     logger_.setLevel(logging.CRITICAL)
     yield logger_
     logger_.setLevel(log_level)
+
+
+import cProfile
+import os
+
+@contextlib.contextmanager
+def profile(filename=None):
+    pr = cProfile.Profile()
+    pr.enable()
+
+    try:
+        yield pr
+    finally:
+        pr.disable()
+        if filename:
+            pr.dump_stats(os.path.join('/tmp', filename))
+        else:
+            pr.print_stats(sort='cumtime')
