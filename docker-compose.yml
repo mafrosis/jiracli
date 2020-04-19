@@ -5,6 +5,7 @@ services:
     image: mafrosis/jiracli
     build:
       context: .
+      dockerfile: Dockerfile.test
     volumes:
       - ./jira_cli:/app/jira_cli
       - ./test:/app/test

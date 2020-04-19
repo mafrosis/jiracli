@@ -3,6 +3,7 @@ docker
 ipdb
 pylint
 pytest<5.4
+pytest-benchmark
 pytest-cov
 pytest-mypy
 pytest-sugar

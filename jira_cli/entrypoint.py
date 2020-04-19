@@ -21,6 +21,8 @@ from jira_cli.main import Jira
 from jira_cli.models import ProjectMeta
 from jira_cli.sync import pull_issues, pull_single_project, push_issues
 
+from jira_cli.utils import profile
+
 
 logger = logging.getLogger('jira')
 sh = logging.StreamHandler()
@@ -410,9 +412,10 @@ def cli_group_lint_issues_missing_epic(ctx, epic_ref=None):
 @click.pass_context
 def cli_ls(ctx):
     '''List Issues on the CLI'''
-    jira = Jira()
-    jira.load_issues()
-    _print_list(jira.df, verbose=ctx.obj.verbose, include_project_col=len(jira.config.projects) > 1)
+    with profile('cli_ls'):
+        jira = Jira()
+        jira.load_issues()
+        _print_list(jira.df, verbose=ctx.obj.verbose, include_project_col=len(jira.config.projects) > 1)
 
 
 def _print_list(df: pd.DataFrame, width: int=60, verbose: bool=False, include_project_col: bool=False):

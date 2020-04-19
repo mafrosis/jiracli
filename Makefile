@@ -5,7 +5,7 @@ all: lint typecheck test
 .PHONY: test
 test:
 	docker-compose run --rm --entrypoint=pytest test \
-		-m 'not integration' \
+		-m 'not integration and not perf' \
 		--cov=jira_cli --cov-report term --cov-report html:cov_html \
 		--disable-pytest-warnings \
 		test/
@@ -19,6 +19,16 @@ integration:
 		--password=eggseggs \
 		--cwd=$$(pwd) \
 		test/integration
+
+.PHONY: perf
+perf:
+	docker-compose run --rm --entrypoint=pytest test \
+		-m 'perf' \
+		--hostname=locke:8666 \
+		--username=blackm \
+		--password=eggseggs \
+		--cwd=$$(pwd) \
+		test/integration/test_perf.py
 
 .PHONY: lint
 lint:
