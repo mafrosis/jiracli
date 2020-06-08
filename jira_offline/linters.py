@@ -34,9 +34,11 @@ def fixversions(jira: 'Jira', fix: bool=False, value: str=None) -> pd.DataFrame:
             # if value is in the epic's fixVersions field
             if value in jira[epic_ref].fixVersions:
                 # filter for all issues under this epic, and add value to fixVersions
-                jira.df[jira.df.epic_ref == jira[epic_ref].key].fixVersions.apply(
-                    lambda x: {value} if x is None else x.add(value)
-                )
+                print(epic_ref)
+                for key in jira.df[jira.df.epic_ref == jira[epic_ref].key].fixVersions.keys():
+                    if not jira[key].fixVersions:
+                        jira[key].fixVersions = set()
+                    jira[key].fixVersions.add(value)
 
         # write updates to disk & invalidate current DataFrame representation
         jira.write_issues()

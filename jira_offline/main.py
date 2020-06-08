@@ -289,20 +289,23 @@ class Jira(collections.abc.MutableMapping):
     @property
     def df(self) -> pd.DataFrame:
         '''
-        Convert self (aka a dict) into pandas DataFrame
+        Convert self (a dict) into a pandas DataFrame
 
-        - Drop original, diff_to_original fields
-        - Drop any issue with issuetype of Risk
+        Convert  Drop original, diff_to_original fields
         - Include issue.status as a string
-        - Include issue.is_open flag
         '''
         if self._df is None:
             items = {}
             for key, issue in self.items():
-                items[key] = {
-                    k:v for k,v in issue.__dict__.items()
-                    if k not in ('original', 'diff_to_original')
-                }
+                if not issue.history:
+                    continue
+                for i, hist in enumerate(issue.history):
+                    items[f'{key}-{i}'] = {
+                        k:v for k,v in issue.__dict__.items()
+                        if k not in ('original', 'diff_to_original', 'project_ref', 'history')
+                    }
+                    items[f'{key}-{i}'].update(hist.__dict__)
+
             self._df = pd.DataFrame.from_dict(items, orient='index')
             # rename the columns sourced from @property on Issue
             self._df.rename(columns={'_status': 'status', '_priority': 'priority'}, inplace=True)

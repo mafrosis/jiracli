@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import arrow
 import click
+import numpy as np
 import pandas as pd
 from tabulate import tabulate
 
@@ -424,6 +425,50 @@ def cli_stats_fixversions(ctx):
     jira.df.fixVersions = jira.df.fixVersions.apply(lambda x: ','.join(x) if x else '')
     aggregated_fixVersions = jira.df.groupby([jira.df.fixVersions]).size().to_frame(name='count')
     _print_table(aggregated_fixVersions)
+
+@cli_group_stats.command(name='egg')
+@click.pass_context
+def cli_stats_egg(ctx):
+    '''Stats on ticket egg'''
+    df = ctx.obj.jira.df
+
+    #prog_to_done = df[(df.field_name == 'status') & (df.issuetype == 'Story') & (df.status == 'Story Done') & (df.from_value == 'Story in Progress') & (df.to_value == 'Story Done')]
+
+    def percentile(n):
+        def percentile_(x):
+            return np.percentile(x, n)
+        percentile_.__name__ = '%sth' % n
+        return percentile_
+
+    def cycle_time(df, initial_state, start_state, finish_state, issuetype='Story'):
+        # first date a card moves from initial_state->start_state
+        from_initial_to_start = df[
+            (df.issuetype == issuetype) & \
+            (df.field_name == 'status') & \
+            (df.from_value == initial_state) & \
+            (df.to_value == start_state)
+        ].groupby(['key']).agg({'history_ts': np.min}).rename(columns={'history_ts': 'start'})
+
+        # last date a card moves from start_state->finish_state
+        from_start_to_finish = df[
+            (df.issuetype == issuetype) & \
+            (df.field_name == 'status') & \
+            (df.from_value == start_state) & \
+            (df.to_value == finish_state)
+        ].groupby(['key']).agg({'history_ts': np.max}).rename(columns={'history_ts': 'end'})
+
+        df = pd.merge(from_initial_to_start, from_start_to_finish, left_index=True, right_index=True)
+        df['diff_in_days'] = (df['end'] - df['start']).dt.total_seconds() / (60*60*24)
+
+        return df.groupby([
+            df['end'].dt.strftime('%Y').rename('year'),
+            df['end'].dt.strftime('%m').rename('month'),
+        ])['diff_in_days'].agg([
+            np.mean, percentile(90)
+        ]).round(1)
+
+    print(cycle_time(df, 'Backlog', 'To Do', 'Story in Progress'))
+    print(cycle_time(df, 'To Do', 'Story in Progress', 'Story Done'))
 
 
 @cli.group(name='lint')
