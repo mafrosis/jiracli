@@ -290,7 +290,7 @@ def test_jira__get_project_issue_statuses__extracts_statuses_for_issuetypes(mock
     '''
     Ensure _get_project_issue_statuses() method doesn't choke if an issuetype has no priority field
     '''
-    # mock return from Jira createmeta API call
+    # mock return from Jira statuses API call
     mock_api_get.return_value = [{
         'id': '10005',
         'name': 'Story',
@@ -301,6 +301,26 @@ def test_jira__get_project_issue_statuses__extracts_statuses_for_issuetypes(mock
 
     assert mock_api_get.called
     assert project.issuetypes['Story'].statuses == {'Egg', 'Bacon'}
+
+
+@mock.patch('jira_offline.main.api_get')
+def test_jira__get_project_components__does_not_fail(mock_api_get, mock_jira_core, project):
+    '''
+    Ensure _get_project_components() method has no dumb errors
+    '''
+    # mock return from Jira components API call
+    mock_api_get.return_value = [{
+        'id': '10005',
+        'name': 'Egg',
+    },{
+        'id': '10006',
+        'name': 'Bacon',
+    }]
+
+    mock_jira_core._get_project_components(project)
+
+    assert mock_api_get.called
+    assert project.components == {'Egg', 'Bacon'}
 
 
 @mock.patch('jira_offline.main.jiraapi_object_to_issue', return_value=Issue.deserialize(ISSUE_1))
