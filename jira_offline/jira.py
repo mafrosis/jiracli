@@ -8,6 +8,7 @@ from typing import Dict, Optional, Set
 
 import jsonlines
 import pandas as pd
+from peak.util.proxies import LazyProxy
 
 from jira_offline.config import get_cache_filepath, load_config
 from jira_offline.exceptions import (EpicNotFound, EstimateFieldUnavailable, JiraApiError,
@@ -19,6 +20,11 @@ from jira_offline.utils.decorators import auth_retry
 
 
 logger = logging.getLogger('jira')
+
+
+# create single Jira object instance at call time for this invocation of the app
+# made available to all modules via simply python import: `from jira_offline.jira import jira`
+jira = LazyProxy(lambda: Jira())  # pylint: disable=unnecessary-lambda
 
 
 class Jira(collections.abc.MutableMapping):
