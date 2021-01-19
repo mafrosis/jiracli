@@ -233,9 +233,10 @@ class Issue(DataclassSerializer):  # pylint: disable=too-many-instance-attribute
     def __setattr__(self, name, value):
         '''
         Override __setattr__ dunder method to ensure Issue.modified is set on change
+
+        The use of Issue._active is necessary as __setattr__ is called repeatedly during object
+        creation. The modified flag must track changes made _after_ the Issue object has been created.
         '''
-        # The use of Issue._active is necessary as __setattr__ is called repeatedly during object
-        # creation. The modified flag must track changes made _after_ the Issue object has been created.
         if self._active:
             self.__dict__['modified'] = True
 
