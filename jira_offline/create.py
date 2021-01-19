@@ -186,8 +186,6 @@ def _import_modified_issue(jira: 'Jira', attrs: dict, lineno: int=None) -> Issue
     # merge the imported data into the existing issue
     update_obj = merge_issues(existing_issue, imported_issue)
 
-    # An imported issue will likely only include a subset of fields, so the merge_issues() function
-    # will flag many fields as being deleted.
     # Since an import is really an _upsert_, we need to reset the original property to that of the
     # unchanged issue, thus giving the correct diff after import.
     update_obj.merged_issue.original = existing_issue.serialize()
