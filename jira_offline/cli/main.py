@@ -320,6 +320,37 @@ def cli_edit(key: str, as_json: bool=False, **kwargs):
         if kwargs.get('epic_name'):
             click.echo('Parameter --epic-name is ignored for anything other than an Epic')
 
+# TODO consider import also
+#    @property
+#    def priority(self) -> Optional[str]:
+#        return self._priority
+#
+#    @priority.setter
+#    def priority(self, value: str):
+#        if not self.project_ref:
+#            raise Exception
+#
+#        if value not in self.project_ref.priorities:
+#            raise InvalidIssuePriority(', '.join(self.project_ref.priorities))
+#
+#        self._priority = value
+#
+#    @property
+#    def status(self) -> Optional[str]:
+#        return self._status
+#
+#    @status.setter
+#    def status(self, value: str):
+#        if not self.project_ref:
+#            raise Exception
+#
+#        if value not in self.project_ref.issuetypes[self.issuetype].statuses:
+#            raise InvalidIssueStatus(
+#                ', '.join(self.project_ref.issuetypes[self.issuetype].statuses)
+#            )
+#
+#        self._status = value
+
     # parse fix_versions and labels
     if kwargs.get('fix_versions'):
         kwargs['fix_versions'] = set(kwargs['fix_versions'].split(','))
