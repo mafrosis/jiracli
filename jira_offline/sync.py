@@ -264,7 +264,7 @@ def build_update(base_issue: Issue, updated_issue: Optional[Issue]) -> IssueUpda
         return tuple(ret)
 
     # fields to ignore during dictdiffer.diff
-    ignore_fields = set(['diff_to_original'])
+    ignore_fields = set(['diff_to_original', 'modified'])
 
     if updated_issue != Issue.blank():
         # ignore readonly fields when diffing new Issues

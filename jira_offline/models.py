@@ -210,6 +210,31 @@ class Issue(DataclassSerializer):  # pylint: disable=too-many-instance-attribute
     # patch of current Issue to dict last seen on Jira server
     diff_to_original: Optional[list] = field(default=None)
 
+    _active: bool = field(init=False, repr=False, default=False, metadata={'serialize': False})
+    modified: Optional[bool] = field(default=False)
+
+
+    def __post_init__(self):
+        '''
+        Special dataclasses dunder method called automatically after Issue.__init__
+        '''
+        # Mark this Issue as active, which means that any subsequent modifications to the Issue object
+        # attributes will result in the modified flag being set (see __setattr__).
+        self.__dict__['_active'] = True
+
+
+    def __setattr__(self, name, value):
+        '''
+        Override __setattr__ dunder method to ensure Issue.modified is set on change
+        '''
+        # The use of Issue._active is necessary as __setattr__ is called repeatedly during object
+        # creation. The modified flag must track changes made _after_ the Issue object has been created.
+        if self._active:
+            self.__dict__['modified'] = True
+
+        self.__dict__[name] = value
+
+
     @property
     def project_key(self) -> str:
         return self.project.key
@@ -249,7 +274,7 @@ class Issue(DataclassSerializer):  # pylint: disable=too-many-instance-attribute
         if not data:
             data = self.serialize()
 
-        return list(dictdiffer.diff(data, self.original, ignore=set(['diff_to_original'])))
+        return list(dictdiffer.diff(data, self.original, ignore=set(['diff_to_original', 'modified'])))
 
     @classmethod
     def deserialize(cls, attrs: dict, project: Optional[ProjectMeta]=None,  # type: ignore[override] # pylint: disable=arguments-differ
