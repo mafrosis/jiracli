@@ -188,7 +188,7 @@ def _import_modified_issue(jira: 'Jira', attrs: dict, lineno: int=None) -> Issue
 
     # Since an import is really an _upsert_, we need to reset the original property to that of the
     # unchanged issue, thus giving the correct diff after import.
-    update_obj.merged_issue.original = existing_issue.serialize()
+    update_obj.merged_issue.set_original(existing_issue.serialize())
 
     # overwrite entry in Jira dict with updated
     jira[attrs['key']] = update_obj.merged_issue

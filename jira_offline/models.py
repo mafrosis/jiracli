@@ -23,7 +23,8 @@ from tabulate import tabulate
 from tzlocal import get_localzone
 
 from jira_offline import __title__
-from jira_offline.exceptions import (BadProjectMetaUri, UnableToCopyCustomCACert, NoAuthenticationMethod)
+from jira_offline.exceptions import (BadProjectMetaUri, CannotSetIssueAttributeDirectly,
+                                     UnableToCopyCustomCACert, NoAuthenticationMethod)
 from jira_offline.utils import render_field, render_value
 from jira_offline.utils.serializer import DataclassSerializer
 
@@ -220,10 +221,9 @@ class Issue(DataclassSerializer):  # pylint: disable=too-many-instance-attribute
         '''
         # apply the diff_to_original patch to the serialized version of the issue, which
         # recreates the issue dict as last seen on the Jira server
-        original = dictdiffer.patch(self.diff_to_original if self.diff_to_original else [], self.serialize())
-        if 'diff_to_original' in original:
-            del original['diff_to_original']
-        self.__dict__['original'] = original
+        self.set_original(
+            dictdiffer.patch(self.diff_to_original if self.diff_to_original else [], self.serialize())
+        )
 
         # Mark this Issue as active, which means that any subsequent modifications to the Issue object
         # attributes will result in the modified flag being set (see __setattr__).
@@ -238,9 +238,23 @@ class Issue(DataclassSerializer):  # pylint: disable=too-many-instance-attribute
         creation. The modified flag must track changes made _after_ the Issue object has been created.
         '''
         if self._active:
+            if name == 'original':
+                raise CannotSetIssueAttributeDirectly
+
             self.__dict__['modified'] = True
 
         self.__dict__[name] = value
+
+
+    def set_original(self, value: Dict[str, Any]):
+        '''
+        Special setter method for Issue.original, which ensures that changing this attribute does not
+        also result in Issue.modified being set to true
+        '''
+        if 'diff_to_original' in value:
+            del value['diff_to_original']
+
+        self.__dict__['original'] = value
 
 
     @property
